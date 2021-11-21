@@ -1,3 +1,8 @@
 body {
   margin: 0 !important;
 }
+
+@font-face {
+  font-family: 'rogotype';
+  src: url('../font/rogo.otf') format("opentype");
+}

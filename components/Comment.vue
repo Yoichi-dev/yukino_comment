@@ -38,7 +38,7 @@ export default {
       if (
         comment.comment == "こんゆきの" ||
         comment.comment == "こんゆきの～" ||
-        comment.comment == "こんゆきの～❄️"
+        comment.comment == "こんゆきの〜❄️"
       ) {
         element3.classList.add("stamp");
         let stampElement = document.createElement("img");
@@ -127,6 +127,7 @@ export default {
       }
 
       let myMain = document.getElementById("comment");
+      // myMain.classList.add("fontrogo");
       myMain.parentNode.insertBefore(element1, myMain.nextElementSibling);
     },
   },
@@ -142,12 +143,17 @@ export default {
   display: none;
 }
 
+.fontrogo {
+  font-family: "rogotype" !important;
+}
+
 .commentArea {
   margin-top: 16vh;
   margin-right: 67px;
   float: right;
   width: 19vw;
-  height: 68vh;
+  height: 58vh;
+  font-family: "rogotype";
 }
 
 .stamp {
@@ -198,8 +204,7 @@ export default {
   max-width: 500px;
   margin: 0 auto;
   padding: 10px 0;
-  font-family: "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro",
-    "Helvetica Neue", "Lucida Sans Unicode", "Arial";
+  font-family: "rogotype" !important;
   font-size: 16px;
   color: #333;
   line-height: 1.4;
@@ -225,7 +230,7 @@ export default {
 }
 
 .kaiwa.line .name + .fukidasi.left {
-  font-size: 30px;
+  font-size: 25px;
   margin-top: 15px;
 }
 
