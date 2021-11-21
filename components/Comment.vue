@@ -127,7 +127,6 @@ export default {
       }
 
       let myMain = document.getElementById("comment");
-      // myMain.classList.add("fontrogo");
       myMain.parentNode.insertBefore(element1, myMain.nextElementSibling);
     },
   },
@@ -148,11 +147,11 @@ export default {
 }
 
 .commentArea {
-  margin-top: 16vh;
+  margin-top: 17vh;
   margin-right: 67px;
   float: right;
   width: 19vw;
-  height: 58vh;
+  height: 57vh;
   font-family: "rogotype";
 }
 
@@ -214,7 +213,7 @@ export default {
 .kaiwa.line .fukidasi {
   position: relative;
   display: inline-block;
-  max-width: 300px;
+  max-width: 273px;
   margin: 8px 0 0;
   padding: 9px 14px;
   border-radius: 19px;
