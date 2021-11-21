@@ -12,7 +12,7 @@ import axios from "axios";
 export default {
   data() {
     return {
-      roomId: "369223",
+      roomId: "294615",
       telop: "",
       commentData: [],
       freeGiftList: [],
@@ -33,10 +33,9 @@ export default {
       this.roomId = this.$route.query.id;
     }
     // 疎通確認
-    // this.checkStreaming = setInterval(() => {
-    //   this.checkLive();
-    // }, 5000);
-    this.checkLive();
+    this.checkStreaming = setInterval(() => {
+      this.checkLive();
+    }, 5000);
   },
   methods: {
     async checkLive() {
