@@ -230,7 +230,6 @@ export default {
       }
     },
     giftPre(giftObj) {
-      console.log(giftObj);
       if (
         this.preGiftList.some(
           (e) => e.id === giftObj.u && e.gitId === giftObj.g
@@ -264,7 +263,6 @@ export default {
           avatar: giftObj.av,
         });
       }
-      console.log(this.preGiftList);
     },
   },
 };

@@ -3,6 +3,7 @@
     <div class="commentArea scrollbar">
       <div id="comment"></div>
     </div>
+    <div class="fontrogo">ゆ</div>
   </div>
 </template>
 
@@ -144,6 +145,7 @@ export default {
 
 .fontrogo {
   font-family: "rogotype" !important;
+  color: rgba(0, 0, 0, 0);
 }
 
 .commentArea {
