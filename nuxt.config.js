@@ -1,3 +1,5 @@
+require('dotenv').config()
+
 export default {
   ssr: false,
   target: 'static',
@@ -11,6 +13,11 @@ export default {
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       { hid: 'description', name: 'description', content: '雪乃クリスタル専用コメントビューワー' },
       { name: 'format-detection', content: 'telephone=no' }
+    ],
+    script: [
+      {
+        src: 'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.6.0/gsap.min.js'
+      }
     ],
     link: [
       { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },

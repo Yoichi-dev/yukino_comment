@@ -142,14 +142,14 @@ export default {
               if (Number(getJson.g) > 10000 && Number(getJson.g) <= 10070) {
               } else if (getJson.g == 1601) {
                 // 虹星
-                // this.fallGift(getJson);
+                this.fallGift(getJson);
               } else {
                 // 無料
-                // this.fallGiftFree(getJson);
+                this.fallGiftFree(getJson);
               }
             } else {
               // 有料
-              // this.fallGift(getJson);
+              this.fallGift(getJson);
             }
           }
 
@@ -206,7 +206,7 @@ export default {
         // ギフト画像の要素を作成
         let giftImgElement = document.createElement("img");
         // 画像を設定
-        if (i <= 9) {
+        if (i <= 5) {
           // giftImgElement.src = `~/assets/image/${i}.png`;
           giftImgElement.src = require(`@/assets/image/${i}.png`);
           giftImgElement.style.width = "50px";
