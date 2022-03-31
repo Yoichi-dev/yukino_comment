@@ -120,7 +120,7 @@ export default {
           data.data.split("MSG\t" + this.streamData.bcsvr_key)[1]
         );
 
-        if (Object.keys(getJson).length === 9) {
+        if (Object.keys(getJson).length === 10) {
           // コメントログ
           // カウント
           let commentFormat = getJson.cm.replace(/[０-９]/g, (s) => {
@@ -134,7 +134,7 @@ export default {
           } else {
             this.getComment(getJson);
           }
-        } else if (Object.keys(getJson).length === 12) {
+        } else if (Object.keys(getJson).length === 13) {
           // ギフトログ
           if (document.hasFocus()) {
             if (getJson.gt == 2) {
@@ -154,7 +154,7 @@ export default {
           }
 
           // this.fallGift(getJson);
-        } else if (Object.keys(getJson).length === 5) {
+        } else if (Object.keys(getJson).length === 6) {
           // テロップ
           this.telop = getJson.telop;
         } else if (Object.keys(getJson).length === 4) {
