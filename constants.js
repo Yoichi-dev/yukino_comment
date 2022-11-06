@@ -1,7 +1,7 @@
 const constants = {
   url: {
-    main: "https://showroom-app-api.herokuapp.com",
-    sub: "https://showroom-app-api.herokuapp.com",
+    main: "https://pianistmusica.net",
+    sub: "https://pianistmusica.net",
     search: "other/search?keyword=",
     live: {
       onlives: "/live/onlives",
