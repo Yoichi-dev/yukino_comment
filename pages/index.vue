@@ -95,14 +95,16 @@ export default {
         axios
           .get(`${constants.url.main}${constants.url.live.premium}`)
           .then((response) => {
-            if (response.data.length != undefined) {
-              if (response.data) {
-                console.log(response.data);
-                this.bcsvr_key = response.data[0].bcsvr_key;
-                this.streamData = response.data[0];
-                clearInterval(this.checkStreaming);
-                // 接続
-                this.connectSocket();
+            if (response.data.length !== 0) {
+              for (const data of response.data) {
+                if (data.room_id === this.roomId) {
+                  this.bcsvr_key = data.bcsvr_key;
+                  this.streamData = data;
+                  clearInterval(this.checkStreaming);
+                  // 接続
+                  this.connectSocket();
+                  break;
+                }
               }
             }
           });
