@@ -1,7 +1,7 @@
 const constants = {
   url: {
-    main: "https://pianistmusica.net",
-    sub: "https://pianistmusica.net",
+    main: "https://api.showroom-app.com",
+    sub: "https://api.showroom-app.com",
     search: "other/search?keyword=",
     live: {
       onlives: "/live/onlives",
