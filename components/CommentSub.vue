@@ -9,9 +9,9 @@
 
 <script>
 export default {
-  props: ["commentData"],
+  props: ["comment"],
   watch: {
-    commentData: function (newData, oldData) {
+    comment: function (newData, oldData) {
       this.addComment(newData);
     },
   },
@@ -33,7 +33,7 @@ export default {
       let giftImgElement = document.createElement("img");
       giftImgElement.classList.add("icon");
       giftImgElement.classList.add("jump");
-      giftImgElement.src = `https://image.showroom-cdn.com/showroom-prod/image/avatar/${comment.avatar}.png?v=85`;
+      giftImgElement.src = comment.avatar;
 
       // こんゆきの～
       if (

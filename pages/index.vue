@@ -1,34 +1,30 @@
 <template>
   <div class="bgimg" id="gift">
-    <Comment :commentData="commentData" />
+    <Comment :comment="commentData" />
   </div>
 </template>
 
 <script>
-import axios from "axios";
+import { gsap } from "gsap";
+import axios from "~/plugins/axios";
 import constants from "~/constants";
 
 export default {
+  name: "IndexPage",
   data() {
     return {
-      roomId: "294615",
-      roomUrl: "/Yukino0102",
-      ws: "wss://online.showroom-live.com",
-      telop: "",
-      bcsvr_key: "",
-      commentData: [],
-      giftData: [],
-      freeGiftList: [],
-      streamData: null,
-      socket: null,
-      checkStreaming: null,
-      checkPing: null,
-      startTime: null,
-      showFlg: true,
-      fallFlg: false,
-      pon: 0,
-      sansyuCount: 0,
-      kasoFlg: false,
+      commentData: {
+        id: null,
+        name: null,
+        comment: null,
+        flg: null,
+        avatar: null,
+      },
+      srSocket: null,
+      roomStatus: null,
+      srSocketPing: null,
+      bcsvr_key: null,
+      fallFlg: true,
     };
   },
   head() {
@@ -37,72 +33,54 @@ export default {
     };
   },
   mounted() {
-    // パラメータがある場合はテスト
-    if (this.$route.query.id != undefined) {
-      this.roomId = this.$route.query.id;
-    }
-    if (this.$route.query.watch != undefined) {
-      this.showFlg = false;
-    }
-    if (this.$route.query.counter != undefined) {
-      this.kasoFlg = true;
-    }
-
-    // 疎通確認
-    // this.checkStreaming = setInterval(() => {
-    //   this.checkLive();
-    // }, 5000);
-
-    // ソケット接続
-    setTimeout(() => {
-      this.getApi(
-        `${constants.url.main}${constants.url.other.broadcast}${this.roomUrl}`
-      )
-        .then((res) => {
-          if (!Object.keys(res.data).length) {
-            this.premiumLive();
-          } else if (res.data.split(":").length === 2) {
-            // 配信中
-            this.bcsvr_key = res.data;
-            this.normalLive();
-          } else {
-            this.prConnectSocket(res.data);
-          }
-        })
-        .catch((e) => {
-          console.log(e);
-          console.log("プレミアム配信かも？");
-          this.premiumLive();
-        });
-    }, 1000);
+    axios
+      .post(constants.url.showroom_api, {
+        category: "room",
+        type: "status",
+        key: constants.roomUrl,
+      })
+      .then((res) => {
+        this.roomStatus = res.data;
+        this.bcsvr_key = res.data.broadcast_key;
+        this.srConnect(res.data.broadcast_key);
+      })
+      .catch((e) => {
+        console.log("プレミアム配信かも？");
+        this.premiumLive();
+      });
   },
   methods: {
-    async normalLive() {
-      await axios
-        .get(`${constants.url.main}${constants.url.room.profile}${this.roomId}`)
-        .then((response) => {
-          if (response.data.is_onlive) {
-            this.startTime = response.data.current_live_started_at;
-            // 配信情報取得
-            this.getLiveData();
-            // 接続
-            this.connectSocket();
-          }
-        });
-    },
     premiumLive() {
-      this.checkStreaming = setInterval(() => {
+      const checkStreaming = setInterval(() => {
         axios
-          .get(`${constants.url.main}${constants.url.live.premium}`)
-          .then((response) => {
-            if (response.data.length !== 0) {
-              for (const data of response.data) {
-                if (data.room_id === this.roomId) {
+          .post(constants.url.showroom_api, {
+            category: "live",
+            type: "onlives",
+            key: new Date().getTime(),
+          })
+          .then((res) => {
+            const premiumList = [];
+            for (let i = 0; i < res.data.onlives.length; i++) {
+              if (
+                res.data.onlives[i].genre_id >= 100 &&
+                res.data.onlives[i].genre_id <= 200
+              ) {
+                const check = res.data.onlives[i].lives.find(
+                  (e) => e.premium_room_type === 1
+                );
+                if (check !== undefined) {
+                  premiumList.push(check);
+                }
+              }
+            }
+            if (premiumList.length !== 0) {
+              for (const data of premiumList) {
+                if (data.room_id === Number(localStorage.room_id)) {
                   this.bcsvr_key = data.bcsvr_key;
-                  this.streamData = data;
-                  clearInterval(this.checkStreaming);
+                  this.roomStatus = data;
+                  clearInterval(checkStreaming);
                   // 接続
-                  this.connectSocket();
+                  this.srConnect(data.bcsvr_key);
                   break;
                 }
               }
@@ -110,191 +88,162 @@ export default {
           });
       }, 5000);
     },
-    async getLiveData() {
-      await axios
-        .get(
-          `${constants.url.main}${constants.url.live.liveInfo}${this.roomId}`
-        )
-        .then((response) => {
-          this.streamData = response.data;
-          this.title = response.data.room_name;
-        });
-    },
-    getApi(url) {
-      return axios.get(url);
-    },
-    prConnectSocket(broadcastKey) {
+    srConnect(bcsvrKey) {
       // 接続
-      const prSocket = new WebSocket(this.ws);
+      this.srSocket = new WebSocket(constants.ws);
       // 接続確認
-      prSocket.onopen = (e) => {
-        prSocket.send(`SUB\t${broadcastKey}`);
-      };
-      // エラー発生時
-      prSocket.onerror = (e) => {
-        prSocket.close();
-        location.reload();
+      this.srSocket.onopen = (e) => {
+        console.log("接続");
+        this.srSocket.send(`SUB\t${bcsvrKey}`);
       };
       // 疎通確認
-      this.checkPing = setInterval(() => {
-        prSocket.send("PING\tshowroom");
+      this.srSocketPing = setInterval(() => {
+        this.srSocket.send("PING\tshowroom");
+        // this.fallFlg = true;
       }, 60000);
+      // エラー発生時
+      this.srSocket.onerror = (e) => {
+        this.srSocket.close();
+        clearInterval(this.srSocketPing);
+        // 再接続
+        this.srConnect(this.bcsvr_key);
+      };
       // メッセージ受信
-      prSocket.onmessage = (data) => {
+      this.srSocket.onmessage = (data) => {
         // 死活監視
-        if (data.data === "ACK\tshowroom") {
-          return;
-        }
-        // エラー
         if (
-          data.data === "ERR" ||
+          data.data === "ACK\tshowroom" ||
           data.data === "Could not decode a text frame as UTF-8."
         ) {
           return;
         }
-        // JSON変換
-        const getJson = JSON.parse(data.data.split(`MSG\t${broadcastKey}`)[1]);
-
-        if (getJson.t === 104) {
-          prSocket.close();
-          clearInterval(this.checkPing);
-          // 配信開始
-          location.reload();
-        }
-      };
-    },
-    connectSocket() {
-      console.log("接続開始");
-      // 接続
-      this.socket = new WebSocket(constants.ws);
-      // 接続確認
-      this.socket.onopen = (e) => {
-        this.socket.send("SUB\t" + this.bcsvr_key);
-        console.log("コネクションを開始しました");
-      };
-      // エラー発生時
-      this.socket.onerror = (error) => {
-        // alert("エラーが発生しました\nページをリロードしてください");
-        location.reload();
-      };
-      // 疎通確認
-      setInterval(() => {
-        this.socket.send("PING\tshowroom");
-      }, 60000);
-      // メッセージ受信
-      this.socket.onmessage = (data) => {
-        // 死活監視
-        if (data.data === "ACK\tshowroom") {
-          console.log("死活監視OK");
-          return;
-        }
-
+        // エラー
         if (data.data === "ERR") {
-          // alert("エラーが発生しました\nページをリロードしてください");
-          location.reload();
-          return;
+          this.srSocket.close();
+          clearInterval(this.srSocketPing);
+          // 再接続
+          this.srConnect(this.bcsvr_key);
         }
 
         // JSON変換
-        let getJson = JSON.parse(data.data.split("MSG\t" + this.bcsvr_key)[1]);
+        const msgJson = JSON.parse(data.data.split(`MSG\t${bcsvrKey}`)[1]);
 
-        if (Object.keys(getJson).length === 10) {
-          // コメントログ
-          // カウント
-          let commentFormat = getJson.cm.replace(/[０-９]/g, (s) => {
-            return String.fromCharCode(s.charCodeAt(0) - 0xfee0);
-          });
-          if (
-            Number.isFinite(Number(commentFormat)) &&
-            Number(commentFormat) <= 50
-          ) {
-            // this.getCount(getJson);
-          } else {
-            this.getComment(getJson);
-          }
-        } else if (Object.keys(getJson).length === 13) {
-          // ギフトログ
-          if (getJson.gt == 2) {
-            // 投票
-            if (Number(getJson.g) > 10000 && Number(getJson.g) <= 10070) {
-            } else if (getJson.g == 1601) {
-              // 虹星
-              this.fallGift(getJson);
-            } else {
-              // 無料
-              this.fallGiftFree(getJson);
+        switch (msgJson.t) {
+          case "1":
+            if (this.commentCountCheck(msgJson)) {
+              // コメント追加
+              this.commentData = {
+                id: msgJson.u,
+                name: msgJson.ac,
+                comment: msgJson.cm,
+                flg: msgJson.ua,
+                avatar: `https://image.showroom-cdn.com/showroom-prod/image/avatar/${msgJson.av}.png?v=85`,
+              };
             }
-          } else {
-            // 有料
-            this.fallGift(getJson);
-          }
-
-          // this.fallGift(getJson);
-        } else if (Object.keys(getJson).length === 6) {
-          // テロップ
-          this.telop = getJson.telop;
-        } else if (Object.keys(getJson).length === 4) {
-          if (getJson.t == 101) {
-            this.socket.close();
-            // alert("配信が終了しました");
+            break;
+          case "2":
+            // ギフト
+            if (this.giftCheck(msgJson)) {
+              // 無料
+              if (this.fallFlg) {
+                this.fallGiftFree(msgJson);
+              }
+            } else {
+              // 有料
+              this.fallGift(msgJson);
+            }
+            break;
+          case 101:
+            console.log("配信終了");
+            console.log(msgJson.created_at);
+            this.srSocket.close();
+            clearInterval(this.srSocketPing);
+            console.log("切断");
             location.reload();
-          }
-        } else {
+            break;
+          case 104:
+            this.srSocket.close();
+            clearInterval(this.srSocketPing);
+            // 再接続
+            location.reload();
+            break;
+          default:
+          // console.log(msgJson)
         }
       };
     },
-    getComment(commentObj) {
-      if (commentObj.cm != undefined) {
-        if (commentObj.u == "3699368") {
-          // 管理者機能
-          let msg = commentObj.cm.split("_");
-          if (msg[0] === "g") {
-            this.fallAdminGift(commentObj.u, msg[1], msg[2]);
-          } else {
-            this.commentData = {
-              id: commentObj.u,
-              name: commentObj.ac,
-              comment: commentObj.cm,
-              flg: commentObj.ua,
-              avatar: commentObj.av,
-            };
-          }
+    commentCountCheck(msgJson) {
+      // 全角数字を半角に変換
+      const numberFormat = msgJson.cm.replace(/[０-９]/g, (s) => {
+        return String.fromCharCode(s.charCodeAt(0) - 0xfee0);
+      });
+      if (
+        !isNaN(numberFormat) &&
+        Number(numberFormat) >= 0 &&
+        Number(numberFormat) <= 50
+      ) {
+        // カウント
+        return false;
+      } else {
+        // コメント
+        return true;
+      }
+    },
+    giftCheck(msgJson) {
+      // ギフトチェック
+      if (msgJson.gt === 2) {
+        // 投票
+        if (Number(msgJson.g) > 10000 && Number(msgJson.g) <= 10070) {
+          // 投票ボール
+        } else if (msgJson.g === 1601) {
+          // 虹星
+          return false;
+        } else if (
+          msgJson.g === 1 ||
+          msgJson.g === 1001 ||
+          msgJson.g === 1002 ||
+          msgJson.g === 1003 ||
+          msgJson.g === 2 ||
+          msgJson.g === 1501 ||
+          msgJson.g === 1502 ||
+          msgJson.g === 1503 ||
+          msgJson.g === 1504 ||
+          msgJson.g === 1505
+        ) {
+          // 無料
+          return true;
         } else {
-          if (commentObj.cm === "me") {
-            this.fallMe(commentObj.u, commentObj.av, 100);
-          } else {
-            this.commentData = {
-              id: commentObj.u,
-              name: commentObj.ac,
-              comment: commentObj.cm,
-              flg: commentObj.ua,
-              avatar: commentObj.av,
-            };
-          }
+          // 星以外のフリーギフト
+          return false;
         }
+      } else {
+        // 有料
+        return false;
       }
     },
     fallGiftFree(gift) {
       // 画面幅を取得
-      let width = window.innerWidth;
-      let height = window.innerHeight;
+      const width = window.innerWidth;
+      const elmId = Math.random().toString(32).substring(2);
 
       // ギフトの数分ループ
       for (let i = 0; i < gift.n; i++) {
         // 要素のID
-        let id = `gift_${gift.u}_${gift.g}_${i}`;
+        const id = `gift_${gift.u}_${gift.g}_${i}_${elmId}`;
         // ギフト画像の要素を作成
-        let giftImgElement = document.createElement("img");
+        const giftImgElement = document.createElement("img");
         // 画像を設定
         if (i <= 5) {
-          // giftImgElement.src = `~/assets/image/${i}.png`;
           giftImgElement.src = require(`@/assets/image/${i}.png`);
           giftImgElement.style.width = "50px";
-        } else if (i == 10) {
-          giftImgElement.src = `https://image.showroom-cdn.com/showroom-prod/image/avatar/${gift.av}.png?v=85`;
+        } else if (i === 10) {
+          giftImgElement.src = `https://image.showroom-cdn.com/showroom-prod/image/avatar/${gift.av}.png`;
           giftImgElement.style.width = "50px";
         } else {
-          giftImgElement.src = `https://image.showroom-cdn.com/showroom-prod/assets/img/gift/${gift.g}_s.png`;
+          giftImgElement.src = require(`@/assets/image/${Math.floor(
+            this.getRandomNum(0, 5)
+          )}.png`);
+          giftImgElement.style.width = "50px";
         }
 
         // IDを設定
@@ -307,28 +256,20 @@ export default {
         document.getElementById("gift").append(giftImgElement);
 
         // 動きを追加
-        // 動かす要素IDを指定
-        gsap.to(`#${id}`, {
-          duration: this.getRandomNum(2, 5), // 2秒～5秒の間で移動
-          rotation: this.getRandomNum(90, 720), // 回転角度
-          y: height - 60, // 落ちる高さ
-          onComplete: () => {
-            document.getElementById(id).remove(); // 終わったら要素を削除
-          },
-        });
+        this.gsaoExe(id);
       }
     },
     fallGift(gift) {
       // 画面幅を取得
-      let width = window.innerWidth;
-      let height = window.innerHeight;
+      const width = window.innerWidth;
+      const elmId = Math.random().toString(32).substring(2);
 
       // ギフトの数分ループ
       for (let i = 0; i < gift.n; i++) {
         // 要素のID
-        let id = `gift_${gift.u}_${gift.g}_${i}`;
+        const id = `gift_${gift.u}_${gift.g}_${i}_${elmId}`;
         // ギフト画像の要素を作成
-        let giftImgElement = document.createElement("img");
+        const giftImgElement = document.createElement("img");
         // 画像を設定
         giftImgElement.src = `https://image.showroom-cdn.com/showroom-prod/assets/img/gift/${gift.g}_s.png`;
         giftImgElement.style.width = "100px";
@@ -342,122 +283,26 @@ export default {
         document.getElementById("gift").append(giftImgElement);
 
         // 動きを追加
-        // 動かす要素IDを指定
-        gsap.to(`#${id}`, {
-          duration: this.getRandomNum(2, 5), // 2秒～5秒の間で移動
-          rotation: this.getRandomNum(90, 720), // 回転角度
-          y: height - 60, // 落ちる高さ
-          onComplete: () => {
-            document.getElementById(id).remove(); // 終わったら要素を削除
-          },
-        });
+        this.gsaoExe(id);
       }
     },
-    fallMe(userId, img, num) {
-      // 画面幅を取得
-      let width = window.innerWidth;
+    gsaoExe(elementId) {
       let height = window.innerHeight;
-
-      // ギフトの数分ループ
-      for (let i = 0; i < num; i++) {
-        // 要素のID
-        let id = `me_${userId}_${i}`;
-        // ギフト画像の要素を作成
-        let giftImgElement = document.createElement("img");
-        // 画像を設定
-        giftImgElement.src = `https://image.showroom-cdn.com/showroom-prod/image/avatar/${img}.png?v=85`;
-        giftImgElement.style.width = "100px";
-        // IDを設定
-        giftImgElement.setAttribute("id", id);
-        // 配置位置を設定
-        giftImgElement.style.position = "absolute";
-        giftImgElement.style.top = "-25px"; // 画面外に配置
-        giftImgElement.style.left = this.getRandomNum(10, width - 70) + "px"; // ランダムに配置
-        // ギフト要素を画面に追加
-        document.getElementById("gift").append(giftImgElement);
-
-        // 動きを追加
-        // 動かす要素IDを指定
-        gsap.to(`#${id}`, {
-          duration: this.getRandomNum(2, 5), // 2秒～5秒の間で移動
-          rotation: this.getRandomNum(90, 720), // 回転角度
-          y: height - 60, // 落ちる高さ
-          onComplete: () => {
-            document.getElementById(id).remove(); // 終わったら要素を削除
-          },
-        });
-      }
-    },
-    fallAther(userId, img, num, size) {
-      // 画面幅を取得
-      let width = window.innerWidth;
-      let height = window.innerHeight;
-
-      // ギフトの数分ループ
-      for (let i = 0; i < num; i++) {
-        // 要素のID
-        let id = `pon_${userId}_${i}`;
-        // ギフト画像の要素を作成
-        let giftImgElement = document.createElement("img");
-        // 画像を設定
-        giftImgElement.src = require(`@/assets/image/${img}.png`);
-        giftImgElement.style.width = `${size}px`;
-        giftImgElement.style.zIndex = 100;
-        // IDを設定
-        giftImgElement.setAttribute("id", id);
-        // 配置位置を設定
-        giftImgElement.style.position = "absolute";
-        giftImgElement.style.top = "-25px"; // 画面外に配置
-        giftImgElement.style.left = this.getRandomNum(10, width - 70) + "px"; // ランダムに配置
-        // ギフト要素を画面に追加
-        document.getElementById("gift").append(giftImgElement);
-
-        // 動きを追加
-        // 動かす要素IDを指定
-        gsap.to(`#${id}`, {
-          duration: this.getRandomNum(2, 5), // 2秒～5秒の間で移動
-          rotation: this.getRandomNum(90, 720), // 回転角度
-          y: height - 60, // 落ちる高さ
-          onComplete: () => {
-            document.getElementById(id).remove(); // 終わったら要素を削除
-          },
-        });
-      }
-    },
-    fallAdminGift(userId, gid, num) {
-      // 画面幅を取得
-      let width = window.innerWidth;
-      let height = window.innerHeight;
-
-      // ギフトの数分ループ
-      for (let i = 0; i < num; i++) {
-        // 要素のID
-        let id = `gift_${userId}_${i}`;
-        // ギフト画像の要素を作成
-        let giftImgElement = document.createElement("img");
-        // 画像を設定
-        giftImgElement.src = `https://image.showroom-cdn.com/showroom-prod/assets/img/gift/${gid}_s.png`;
-        giftImgElement.style.width = "100px";
-        // IDを設定
-        giftImgElement.setAttribute("id", id);
-        // 配置位置を設定
-        giftImgElement.style.position = "absolute";
-        giftImgElement.style.top = "-25px"; // 画面外に配置
-        giftImgElement.style.left = this.getRandomNum(10, width - 70) + "px"; // ランダムに配置
-        // ギフト要素を画面に追加
-        document.getElementById("gift").append(giftImgElement);
-
-        // 動きを追加
-        // 動かす要素IDを指定
-        gsap.to(`#${id}`, {
-          duration: this.getRandomNum(2, 5), // 2秒～5秒の間で移動
-          rotation: this.getRandomNum(90, 720), // 回転角度
-          y: height - 60, // 落ちる高さ
-          onComplete: () => {
-            document.getElementById(id).remove(); // 終わったら要素を削除
-          },
-        });
-      }
+      gsap.to(`#${elementId}`, {
+        duration: this.getRandomNum(6, 9), // 2秒～5秒の間で移動
+        rotation: this.getRandomNum(90, 720), // 回転角度
+        y: height - 60, // 落ちる高さ
+        onComplete: () => {
+          if (document.getElementById(elementId) !== null) {
+            document.getElementById(elementId).remove(); // 終わったら要素を削除
+          }
+        },
+      });
+      setTimeout(() => {
+        if (document.getElementById(elementId) !== null) {
+          document.getElementById(elementId).remove();
+        }
+      }, 10000);
     },
     getRandomNum(min, max) {
       min = Math.ceil(min);

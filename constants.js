@@ -1,29 +1,10 @@
 const constants = {
   url: {
-    main: "https://api.showroom-app.com",
-    sub: "https://api.showroom-app.com",
-    search: "other/search?keyword=",
-    live: {
-      onlives: "/live/onlives",
-      premium: "/live/premium",
-      giftList: "/live/gift_list/",
-      stageUserList: "/live/stage_user_list/",
-      liveInfo: "/live/live_info/",
-      commentLog: "/live/comment_log/",
-      giftLog: "/live/gift_log/",
-    },
-    room: {
-      profile: "/room/profile/",
-      eventAndSupport: "/room/event_and_support/",
-    },
-    user: {
-      profile: "/users/profile/",
-    },
-    other: {
-      broadcast: "/other/broadcast"
-    }
+    showroom_api: "/showroom/api",
   },
   ws: "wss://online.showroom-live.com",
+  roomId: 294615,
+  roomUrl: "Yukino0102",
 }
 
 module.exports = Object.freeze(constants);

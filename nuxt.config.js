@@ -1,5 +1,3 @@
-require('dotenv').config()
-
 export default {
   ssr: false,
   target: 'static',
@@ -47,7 +45,7 @@ export default {
     fallback: true
   },
   env: {
-    API_URL: process.env.API_URL
+    baseUrl: process.env.BASE_URL || 'https://api.showroom-app.com'
   },
   build: {
   }
